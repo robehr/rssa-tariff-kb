@@ -65,13 +65,27 @@
     margin-top: 2px;
   }
 
+  #header-right {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  #rssa-logo {
+    height: 52px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+  }
+
   #status-dot {
     width: 8px;
     height: 8px;
     background: #4ade80;
     border-radius: 50%;
-    margin-left: auto;
-    flex-shrink: 0;
     animation: pulse 2s infinite;
   }
 
@@ -293,7 +307,13 @@
       <h2>RSSA Tariff Assistant</h2>
       <p>Radiological Society of South Africa · Members Only</p>
     </div>
-    <div id="status-dot"></div>
+    <div id="header-right">
+      <img id="rssa-logo"
+           src="https://raw.githubusercontent.com/robehr/rssa-tariff-kb/refs/heads/main/rssa_logo.png"
+           alt="RSSA Logo"
+           onerror="this.style.display='none'">
+      <div id="status-dot"></div>
+    </div>
   </div>
 
   <div id="disclaimer">
