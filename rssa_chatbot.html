@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSSA Tariff Assistant</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f0f2f5;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #chat-container {
+    width: 100%;
+    max-width: 700px;
+    height: 100vh;
+    max-height: 750px;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    overflow: hidden;
+  }
+
+  /* Header */
+  #chat-header {
+    background: linear-gradient(135deg, #00529B 0%, #003f78 100%);
+    color: #fff;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  #chat-header .logo {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  #chat-header .info h2 {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  #chat-header .info p {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+
+  #status-dot {
+    width: 8px;
+    height: 8px;
+    background: #4ade80;
+    border-radius: 50%;
+    margin-left: auto;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Disclaimer banner */
+  #disclaimer {
+    background: #fff8e1;
+    border-bottom: 1px solid #ffe082;
+    padding: 8px 16px;
+    font-size: 11.5px;
+    color: #6d4c00;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  /* Messages area */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  .message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.bot { align-self: flex-start; }
+  .message.user { align-self: flex-end; }
+
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.55;
+    word-break: break-word;
+  }
+
+  .message.bot .bubble {
+    background: #f1f3f6;
+    color: #1a1a1a;
+    border-bottom-left-radius: 4px;
+  }
+
+  .message.user .bubble {
+    background: #00529B;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .message .meta {
+    font-size: 11px;
+    color: #999;
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  .message.user .meta { text-align: right; }
+
+  /* Source badge */
+  .source-badge {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1a56db;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 6px;
+  }
+
+  .source-badge.guideline {
+    background: #e6f4ea;
+    color: #137333;
+  }
+
+  /* Quick suggestions */
+  #suggestions {
+    padding: 8px 16px 4px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    border-top: 1px solid #eee;
+    background: #fafafa;
+  }
+
+  #suggestions span {
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .suggestion-chip {
+    background: #e8f0fe;
+    color: #1a56db;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .suggestion-chip:hover { background: #c7d9fc; }
+
+  /* Input area */
+  #input-area {
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    border-top: 1px solid #e8e8e8;
+    background: #fff;
+    flex-shrink: 0;
+  }
+
+  #user-input {
+    flex: 1;
+    border: 1.5px solid #d0d5dd;
+    border-radius: 24px;
+    padding: 10px 16px;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+    max-height: 120px;
+    overflow-y: auto;
+    line-height: 1.4;
+    transition: border-color 0.2s;
+    font-family: inherit;
+  }
+
+  #user-input:focus { border-color: #00529B; }
+
+  #send-btn {
+    width: 42px;
+    height: 42px;
+    background: #00529B;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  #send-btn:hover { background: #003f78; }
+  #send-btn:active { transform: scale(0.94); }
+  #send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  #send-btn svg { width: 18px; height: 18px; fill: #fff; }
+
+  /* Loading dots */
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 14px;
+    background: #f1f3f6;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    width: fit-content;
+  }
+
+  .typing-indicator span {
+    width: 7px;
+    height: 7px;
+    background: #999;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
+
+  /* Scrollbar */
+  #messages::-webkit-scrollbar { width: 5px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 10px; }
+
+  /* Mobile */
+  @media (max-width: 600px) {
+    body { background: #fff; align-items: flex-start; }
+    #chat-container { max-height: 100vh; border-radius: 0; box-shadow: none; }
+    .message { max-width: 92%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="chat-container">
+  <div id="chat-header">
+    <div class="logo">R</div>
+    <div class="info">
+      <h2>RSSA Tariff Assistant</h2>
+      <p>Radiological Society of South Africa · Members Only</p>
+    </div>
+    <div id="status-dot"></div>
+  </div>
+
+  <div id="disclaimer">
+    Answers are based on approved RSSA reference documents only. For complex billing queries, contact the RSSA office.
+  </div>
+
+  <div id="messages">
+    <!-- Populated by JS -->
+  </div>
+
+  <div id="suggestions">
+    <span>Try:</span>
+    <button class="suggestion-chip" onclick="askSuggestion(this)">Code 50130</button>
+    <button class="suggestion-chip" onclick="askSuggestion(this)">After-hours codes</button>
+    <button class="suggestion-chip" onclick="askSuggestion(this)">Contrast materials billing</button>
+    <button class="suggestion-chip" onclick="askSuggestion(this)">Emergency callout 01010</button>
+    <button class="suggestion-chip" onclick="askSuggestion(this)">Code 01070 consultation</button>
+  </div>
+
+  <div id="input-area">
+    <textarea id="user-input" rows="1" placeholder="Ask about a tariff code or billing question…" maxlength="500"></textarea>
+    <button id="send-btn" onclick="sendMessage()" title="Send">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+// ─── CONFIGURATION ────────────────────────────────────────────────────────────
+// Replace this URL with your actual GitHub raw JSON URL after uploading
+const DATA_URL = 'https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/rssa_knowledge.json';
+
+// Minimum keyword match score to return an answer (0–1)
+const CONFIDENCE_THRESHOLD = 0.12;
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let kb = null;        // loaded knowledge base
+let loadError = false;
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  autoGrow();
+  addMessage('bot', `Hello! I'm the RSSA Tariff Assistant. I can help you find information about radiology billing codes and tariff guidelines from approved RSSA documents.\n\nType a billing code (e.g. <strong>50130</strong>) or ask a question about tariffs and billing.`);
+  loadKnowledgeBase();
+});
+
+function autoGrow() {
+  const ta = document.getElementById('user-input');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+  });
+  ta.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+}
+
+// ─── KNOWLEDGE BASE LOADER ───────────────────────────────────────────────────
+async function loadKnowledgeBase() {
+  try {
+    const res = await fetch(DATA_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    kb = await res.json();
+    console.log(`[RSSA] Knowledge base loaded: ${kb.total_entries} entries (v${kb.version})`);
+  } catch (err) {
+    console.warn('[RSSA] Could not load knowledge base:', err.message);
+    loadError = true;
+  }
+}
+
+// ─── SEARCH ENGINE ────────────────────────────────────────────────────────────
+const CODE_RE = /\b\d{5}\b/g;
+const STOP = new Set(['what','is','the','a','an','of','for','in','on','at','to','and',
+  'or','can','i','do','how','does','when','are','was','with','about','please',
+  'tell','me','my','this','that','it','be','have','has','by','from','not','if',
+  'we','they','he','she','you','your','our','their','which','code','tariff',
+  'billing','bill','charge','radiology','radiologist','patient','hospital','claim',
+  'rssa','soc','medical','aid','scheme','rate','price','amount','fee','pay',
+  'payment','would','should','could','will','use','using','used']);
+
+function extractCodes(text) {
+  return [...new Set((text.match(CODE_RE) || []))];
+}
+
+function tokenise(text) {
+  return text.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOP.has(w));
+}
+
+function score(entry, queryCodes, queryTokens) {
+  let s = 0;
+
+  // Code match: strongest signal
+  if (queryCodes.length > 0) {
+    const matched = queryCodes.filter(c => entry.codes.includes(c)).length;
+    s += matched * 2.0;
+  }
+
+  // Keyword overlap
+  const entryWords = new Set(entry.keywords || []);
+  const overlap = queryTokens.filter(t => entryWords.has(t)).length;
+  const union   = new Set([...queryTokens, ...entryWords]).size;
+  if (union > 0) s += overlap / union;
+
+  // Priority bonus (2026 FAQ > 2019 FAQ > guidelines)
+  s += (entry.priority === 1 ? 0.05 : entry.priority === 2 ? 0.02 : 0);
+
+  return s;
+}
+
+function search(query) {
+  if (!kb) return null;
+
+  const queryCodes  = extractCodes(query);
+  const queryTokens = tokenise(query);
+
+  if (queryCodes.length === 0 && queryTokens.length === 0) return null;
+
+  let best = null;
+  let bestScore = 0;
+
+  for (const entry of kb.entries) {
+    const s = score(entry, queryCodes, queryTokens);
+    if (s > bestScore) { bestScore = s; best = entry; }
+  }
+
+  const threshold = queryCodes.length > 0 ? 0.5 : CONFIDENCE_THRESHOLD;
+  return bestScore >= threshold ? { entry: best, score: bestScore } : null;
+}
+
+// ─── MESSAGE HANDLERS ─────────────────────────────────────────────────────────
+function sendMessage() {
+  const input = document.getElementById('user-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  addMessage('user', escHtml(text));
+  document.getElementById('send-btn').disabled = true;
+
+  const typingId = addTyping();
+
+  setTimeout(() => {
+    removeTyping(typingId);
+    const reply = generateReply(text);
+    addMessage('bot', reply.html, reply.source, reply.sourceType);
+    document.getElementById('send-btn').disabled = false;
+  }, 600 + Math.random() * 400);
+}
+
+function askSuggestion(btn) {
+  document.getElementById('user-input').value = btn.textContent;
+  sendMessage();
+}
+
+function generateReply(query) {
+  // Not yet loaded
+  if (!kb && !loadError) {
+    return { html: 'Still loading the knowledge base — please try again in a moment.', source: null };
+  }
+
+  if (loadError) {
+    return {
+      html: `⚠️ The knowledge base could not be loaded. Please check that the <code>DATA_URL</code> in the chatbot points to your uploaded <code>rssa_knowledge.json</code> on GitHub.`,
+      source: null
+    };
+  }
+
+  const result = search(query);
+
+  if (!result) {
+    const fallback = kb.fallback_message ||
+      'There has been no similar query to the RSSA – please contact the RSSA office and ask for more information.';
+    return { html: escHtml(fallback), source: null };
+  }
+
+  const e = result.entry;
+  let html = '';
+
+  // Code badge
+  if (e.primary_code) {
+    html += `<strong>Code ${escHtml(e.primary_code)}</strong><br><br>`;
+  }
+
+  // Question (for FAQ entries)
+  if (e.question && e.type !== 'guideline') {
+    html += `<em>${escHtml(e.question)}</em><br><br>`;
+  }
+
+  // Answer
+  html += escHtml(e.answer).replace(/\n/g, '<br>');
+
+  // Multiple codes
+  if (e.codes && e.codes.length > 1) {
+    html += `<br><br><small><strong>Related codes:</strong> ${e.codes.map(escHtml).join(', ')}</small>`;
+  }
+
+  const sourceType = e.source === 'billing_guidelines' ? 'guideline' : 'faq';
+  const sourceLabel = e.source_doc || (e.source === 'FAQ_2026' ? 'RSSA FAQ 2026' :
+                       e.source === 'FAQ_2019' ? 'RSSA FAQ 2019' : 'RSSA Billing Guidelines');
+
+  return { html, source: sourceLabel, sourceType };
+}
+
+// ─── DOM HELPERS ──────────────────────────────────────────────────────────────
+function addMessage(role, html, source, sourceType) {
+  const msgs = document.getElementById('messages');
+  const wrapper = document.createElement('div');
+  wrapper.className = `message ${role}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = html;
+  wrapper.appendChild(bubble);
+
+  if (source) {
+    const badge = document.createElement('span');
+    badge.className = `source-badge ${sourceType || ''}`;
+    badge.textContent = `Source: ${source}`;
+    wrapper.appendChild(badge);
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = role === 'bot' ? 'RSSA Tariff Assistant' : 'You';
+  wrapper.appendChild(meta);
+
+  msgs.appendChild(wrapper);
+  msgs.scrollTop = msgs.scrollHeight;
+  return wrapper;
+}
+
+let typingCounter = 0;
+function addTyping() {
+  const id = ++typingCounter;
+  const msgs = document.getElementById('messages');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'message bot';
+  wrapper.id = `typing-${id}`;
+  wrapper.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(wrapper);
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(`typing-${id}`);
+  if (el) el.remove();
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
