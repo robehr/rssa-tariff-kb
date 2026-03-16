@@ -545,6 +545,21 @@ function generateReply(query) {
   const e = result.entry;
   let html = '';
 
+  // If a specific tariff code was queried and exists in the tariff database,
+  // always show tariff details first before the FAQ answer.
+  const matchedTariffCode = queriedCodes.find(code => TARIFFS_DATA[code]);
+  if (matchedTariffCode) {
+    const t = TARIFFS_DATA[matchedTariffCode];
+    html += `Details for tariff code <strong>${escHtml(matchedTariffCode)}</strong>:<br><br>`;
+    html += `<strong>Tariff Description:</strong> ${escHtml(t.tariff_desc || '\u2014')}<br>`;
+    html += `<strong>Main Anatomical Region:</strong> ${escHtml(t.tariff_main_anatomical_desc || '\u2014')}<br>`;
+    html += `<strong>Sub Anatomical Region:</strong> ${escHtml(t.tariff_sub_anatomical_desc || '\u2014')}<br>`;
+    html += `<strong>Treatment Modality:</strong> ${escHtml(t.treatment_modality_desc || '\u2014')}<br>`;
+    html += `<strong>Analysis Category:</strong> ${escHtml(t.tariff_analysis_category_desc || '\u2014')}<br>`;
+    html += `<strong>High / Low Tech:</strong> ${escHtml(t.high_low_tech_desc || '\u2014')}`;
+    html += `<br><br><hr style="border:none;border-top:1px solid #ccc;margin:10px 0;"><br>`;
+  }
+
   // Code badge
   if (e.primary_code) {
     html += `<strong>Code ${escHtml(e.primary_code)}</strong><br><br>`;
