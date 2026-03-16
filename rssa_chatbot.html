@@ -503,23 +503,25 @@ function generateReply(query) {
   }
 
   const result = search(query);
+  const queriedCodes = extractCodes(query);
+
+  // For a specific code query: prefer tariff lookup when the KB result did NOT
+  // explicitly match that code (i.e. it was only a keyword/false-positive match).
+  for (const code of queriedCodes) {
+    if (TARIFFS_DATA[code] && (!result || !result.entry.codes.includes(code))) {
+      const t = TARIFFS_DATA[code];
+      let tHtml = `No related FAQ topic found. Details for tariff code <strong>${escHtml(code)}</strong>:<br><br>`;
+      tHtml += `<strong>Tariff Description:</strong> ${escHtml(t.tariff_desc || '\u2014')}<br>`;
+      tHtml += `<strong>Main Anatomical Region:</strong> ${escHtml(t.tariff_main_anatomical_desc || '\u2014')}<br>`;
+      tHtml += `<strong>Sub Anatomical Region:</strong> ${escHtml(t.tariff_sub_anatomical_desc || '\u2014')}<br>`;
+      tHtml += `<strong>Treatment Modality:</strong> ${escHtml(t.treatment_modality_desc || '\u2014')}<br>`;
+      tHtml += `<strong>Analysis Category:</strong> ${escHtml(t.tariff_analysis_category_desc || '\u2014')}<br>`;
+      tHtml += `<strong>High / Low Tech:</strong> ${escHtml(t.high_low_tech_desc || '\u2014')}`;
+      return { html: tHtml, source: 'Radiology Tariffs 2025', sourceType: 'tariff' };
+    }
+  }
 
   if (!result) {
-    // Check radiology tariffs lookup for specific tariff codes
-    const queriedCodes = extractCodes(query);
-    for (const code of queriedCodes) {
-      if (TARIFFS_DATA[code]) {
-        const t = TARIFFS_DATA[code];
-        let tHtml = `No related FAQ topic found. Details for tariff code <strong>${escHtml(code)}</strong>:<br><br>`;
-        tHtml += `<strong>Tariff Description:</strong> ${escHtml(t.tariff_desc || '\u2014')}<br>`;
-        tHtml += `<strong>Main Anatomical Region:</strong> ${escHtml(t.tariff_main_anatomical_desc || '\u2014')}<br>`;
-        tHtml += `<strong>Sub Anatomical Region:</strong> ${escHtml(t.tariff_sub_anatomical_desc || '\u2014')}<br>`;
-        tHtml += `<strong>Treatment Modality:</strong> ${escHtml(t.treatment_modality_desc || '\u2014')}<br>`;
-        tHtml += `<strong>Analysis Category:</strong> ${escHtml(t.tariff_analysis_category_desc || '\u2014')}<br>`;
-        tHtml += `<strong>High / Low Tech:</strong> ${escHtml(t.high_low_tech_desc || '\u2014')}`;
-        return { html: tHtml, source: 'Radiology Tariffs 2025', sourceType: 'tariff' };
-      }
-    }
     const fallback = kb.fallback_message ||
       'There has been no similar query to the RSSA - please contact the RSSA office and ask for more information.';
     return { html: escHtml(fallback), source: null };
