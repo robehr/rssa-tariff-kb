@@ -347,7 +347,7 @@
 const DATA_URL = 'https://raw.githubusercontent.com/robehr/rssa-tariff-kb/refs/heads/main/rssa_knowledge.json';
 
 // Minimum keyword match score to return an answer (0–1)
-const CONFIDENCE_THRESHOLD = 0.12;
+const CONFIDENCE_THRESHOLD = 0.07;
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let kb = null;        // loaded knowledge base
@@ -386,13 +386,17 @@ async function loadKnowledgeBase() {
 
 // ─── SEARCH ENGINE ────────────────────────────────────────────────────────────
 const CODE_RE = /\b\d{5}\b/g;
+// Stop words aligned with the knowledge-base generator (process_data.py) so that
+// domain terms stored in entry keywords (fee, tariff, patient, medical, etc.)
+// are NOT stripped from user queries — keeping them improves match scores.
 const STOP = new Set(['what','is','the','a','an','of','for','in','on','at','to','and',
   'or','can','i','do','how','does','when','are','was','with','about','please',
   'tell','me','my','this','that','it','be','have','has','by','from','not','if',
-  'we','they','he','she','you','your','our','their','which','code','tariff',
-  'billing','bill','charge','radiology','radiologist','patient','hospital','claim',
-  'rssa','soc','medical','aid','scheme','rate','price','amount','fee','pay',
-  'payment','would','should','could','will','use','using','used']);
+  'we','they','he','she','you','your','our','their','which',
+  'billing','bill','charge','would','should','could','will','use','using','used',
+  'per','done','also','both','either','each','more','most','other','some','such',
+  'than','then','where','who','why','these','those','its','no','any','all',
+  'only','may','might','shall','did','had','were','been']);
 
 function extractCodes(text) {
   return [...new Set((text.match(CODE_RE) || []))];
@@ -402,7 +406,7 @@ function tokenise(text) {
   return text.toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 2 && !STOP.has(w));
+    .filter(w => w.length >= 2 && !STOP.has(w));
 }
 
 function score(entry, queryCodes, queryTokens) {
@@ -442,8 +446,10 @@ function search(query) {
     if (s > bestScore) { bestScore = s; best = entry; }
   }
 
-  const threshold = queryCodes.length > 0 ? 0.5 : CONFIDENCE_THRESHOLD;
-  return bestScore >= threshold ? { entry: best, score: bestScore } : null;
+  // If a code was matched in the KB its score is ≥2.0, which easily clears
+  // CONFIDENCE_THRESHOLD. Using a single threshold avoids the old 0.5 trap
+  // where a valid code query failed if the code wasn't in the KB (score→0).
+  return bestScore >= CONFIDENCE_THRESHOLD ? { entry: best, score: bestScore } : null;
 }
 
 // ─── MESSAGE HANDLERS ─────────────────────────────────────────────────────────
@@ -502,12 +508,7 @@ function generateReply(query) {
     html += `<strong>Code ${escHtml(e.primary_code)}</strong><br><br>`;
   }
 
-  // Question (for FAQ entries)
-  if (e.question && e.type !== 'guideline') {
-    html += `<em>${escHtml(e.question)}</em><br><br>`;
-  }
-
-  // Answer
+  // Answer only — no question echo; the answer is reworded directly as a response
   html += escHtml(e.answer).replace(/\n/g, '<br>');
 
   // Multiple codes
